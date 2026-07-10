@@ -10,6 +10,11 @@ services:
       - ./backend/.env
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+      - HF_HUB_DISABLE_XET=1
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/chroma_db:/app/chroma_db
+      - hf_cache:/root/.cache/huggingface
     profiles:
       - cpu
       - default
@@ -25,6 +30,11 @@ services:
       - ./backend/.env
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+      - HF_HUB_DISABLE_XET=1
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/chroma_db:/app/chroma_db
+      - hf_cache:/root/.cache/huggingface
     profiles:
       - gpu
 
@@ -37,3 +47,6 @@ services:
       - cpu
       - default
       - gpu
+
+volumes:
+  hf_cache:

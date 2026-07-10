@@ -132,6 +132,7 @@ class BackgroundProcessor:
         # Update status to processing
         video_library_service.update_video_status(video_id, ProcessingStatus.PROCESSING)
 
+        audio_path = None
         try:
             # Step 1: Get video file (download if YouTube)
             video_path = video.file_path
@@ -198,7 +199,8 @@ class BackgroundProcessor:
             raise
         finally:
             # Keep video files for playback; always cleanup transient audio artifacts.
-            safe_remove_file(audio_path)
+            if audio_path:
+                safe_remove_file(audio_path)
 
     async def _process_visual(
         self, video_id: str, video_path: str, segments: list[TranscriptSegment]
