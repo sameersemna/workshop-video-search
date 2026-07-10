@@ -1,8 +1,9 @@
 from pydantic import BaseModel, HttpUrl
 from typing import List, Literal, Optional
 
-from app.services.transcription import DEFAULT_MODEL
 from app.models.camel_case import CamelCaseModel
+
+DEFAULT_MODEL = "small"
 
 
 class TranscriptionRequest(CamelCaseModel):

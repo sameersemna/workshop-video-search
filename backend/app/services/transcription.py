@@ -269,3 +269,25 @@ async def cleanup_frames_directory(video_id: str, delay: int = 7200) -> None:
         logger.error(f"Error deleting frames directory: {e}")
         # Don't raise the exception in a background task as it would be unhandled
         # Just log it instead
+
+
+def safe_remove_file(file_path: str) -> None:
+    """Best-effort file cleanup that never raises."""
+    try:
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted file: {file_path}")
+    except Exception as e:
+        logger.warning(f"Failed deleting file {file_path}: {e}")
+
+
+def safe_remove_directory(directory_path: str) -> None:
+    """Best-effort directory cleanup that never raises."""
+    try:
+        if directory_path and os.path.exists(directory_path):
+            shutil.rmtree(directory_path)
+            logger.info(f"Deleted directory: {directory_path}")
+    except Exception as e:
+        logger.warning(f"Failed deleting directory {directory_path}: {e}")
+
+

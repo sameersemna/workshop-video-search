@@ -1,15 +1,17 @@
 import asyncio
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 from app.models.transcription import Transcript, TranscriptSegment
 from app.models.video import ProcessingStatus, VideoSource
+from app.services.execution import run_blocking
+from app.services.segment_ids import build_segment_id
 from app.services.search import search_service
 from app.services.transcription import (
     download_video,
     extract_audio,
+    safe_remove_file,
     transcribe_audio,
 )
 from app.services.video_library import video_library_service
@@ -21,9 +23,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-# Thread pool for CPU-bound operations
-executor = ThreadPoolExecutor(max_workers=2)
 
 
 class BackgroundProcessor:
@@ -138,9 +137,7 @@ class BackgroundProcessor:
             video_path = video.file_path
             if video.source == VideoSource.YOUTUBE and video.youtube_url:
                 logger.info(f"Downloading YouTube video: {video.youtube_url}")
-                await asyncio.get_event_loop().run_in_executor(
-                    executor, download_video, video.youtube_url, video_path
-                )
+                await run_blocking(download_video, video.youtube_url, video_path)
 
             if not os.path.exists(video_path):
                 raise RuntimeError(f"Video file not found: {video_path}")
@@ -155,14 +152,11 @@ class BackgroundProcessor:
             # Step 3: Extract audio
             audio_path = video_path.rsplit(".", 1)[0] + ".mp3"
             logger.info(f"Extracting audio to: {audio_path}")
-            await asyncio.get_event_loop().run_in_executor(
-                executor, extract_audio, video_path, audio_path
-            )
+            await run_blocking(extract_audio, video_path, audio_path)
 
             # Step 4: Transcribe
             logger.info(f"Transcribing audio with model: {video.whisper_model}")
-            result = await asyncio.get_event_loop().run_in_executor(
-                executor,
+            result = await run_blocking(
                 transcribe_audio,
                 audio_path,
                 video.whisper_model,
@@ -173,12 +167,12 @@ class BackgroundProcessor:
             transcript_text = result["text"]
             segments = [
                 TranscriptSegment(
-                    id=f"{video_id}_{i}",
+                    id=build_segment_id(video_id, seg["start"], seg["end"], seg["text"]),
                     start=seg["start"],
                     end=seg["end"],
                     text=seg["text"],
                 )
-                for i, seg in enumerate(result["segments"])
+                for seg in result["segments"]
             ]
 
             # Step 6: Index transcript in ChromaDB
@@ -189,11 +183,6 @@ class BackgroundProcessor:
 
             # Step 7: Extract frames and generate visual embeddings
             await self._process_visual(video_id, video_path, segments)
-
-            # Step 8: Clean up audio file (keep video file for playback)
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
-                logger.info(f"Cleaned up audio file: {audio_path}")
 
             # Step 9: Update status to completed
             video_library_service.update_video_status(
@@ -207,6 +196,9 @@ class BackgroundProcessor:
                 video_id, ProcessingStatus.FAILED, str(e)
             )
             raise
+        finally:
+            # Keep video files for playback; always cleanup transient audio artifacts.
+            safe_remove_file(audio_path)
 
     async def _process_visual(
         self, video_id: str, video_path: str, segments: list[TranscriptSegment]
@@ -216,8 +208,7 @@ class BackgroundProcessor:
             logger.info(f"Starting visual processing for video {video_id}")
 
             # Extract frames for each segment
-            frames_by_segment = await asyncio.get_event_loop().run_in_executor(
-                executor,
+            frames_by_segment = await run_blocking(
                 visual_processing_service.extract_frames_for_segments,
                 video_path,
                 segments,
@@ -238,8 +229,7 @@ class BackgroundProcessor:
 
             if all_frame_paths:
                 logger.info(f"Generating embeddings for {len(all_frame_paths)} frames")
-                embeddings = await asyncio.get_event_loop().run_in_executor(
-                    executor,
+                embeddings = await run_blocking(
                     visual_processing_service.generate_frame_embeddings,
                     all_frame_paths,
                 )

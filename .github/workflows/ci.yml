@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND_COVERAGE_LINES_MIN: "0"
+      FRONTEND_COVERAGE_FUNCTIONS_MIN: "1"
+      FRONTEND_COVERAGE_BRANCHES_MIN: "1"
+      FRONTEND_COVERAGE_STATEMENTS_MIN: "0"
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:coverage
+
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_COVERAGE_MIN: "3"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=${BACKEND_COVERAGE_MIN}

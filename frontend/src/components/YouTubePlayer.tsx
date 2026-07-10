@@ -8,9 +8,31 @@ export interface YouTubePlayerHandle {
   seekTo: (seconds: number) => void;
 }
 
+interface YouTubePlayerInstance {
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  destroy: () => void;
+}
+
+interface YouTubePlayerConstructor {
+  new (
+    container: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars: {
+        playsinline: 1;
+        rel: 0;
+      };
+    }
+  ): YouTubePlayerInstance;
+}
+
+interface YouTubeNamespace {
+  Player: YouTubePlayerConstructor;
+}
+
 declare global {
   interface Window {
-    YT: any;
+    YT?: YouTubeNamespace;
     onYouTubeIframeAPIReady?: () => void;
   }
 }
@@ -33,7 +55,7 @@ function extractVideoId(url: string): string | null {
 
 const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
   ({ videoUrl }, ref) => {
-    const playerRef = useRef<any>(null);
+    const playerRef = useRef<YouTubePlayerInstance | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const videoId = extractVideoId(videoUrl);
 
@@ -46,7 +68,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
     }));
 
     useEffect(() => {
-      if (!videoId) return;
+      const resolvedVideoId = videoId;
+      if (!resolvedVideoId) return;
+      const playerVideoId: string = resolvedVideoId;
 
       // Load YouTube iframe API
       if (!window.YT) {
@@ -65,7 +89,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
       function createPlayer() {
         if (containerRef.current && window.YT) {
           playerRef.current = new window.YT.Player(containerRef.current, {
-            videoId: videoId,
+            videoId: playerVideoId,
             playerVars: {
               playsinline: 1,
               rel: 0,

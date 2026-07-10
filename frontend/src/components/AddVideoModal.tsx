@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { addYouTubeVideo, uploadVideos } from "../services/api";
+import { addYouTubeVideo, getApiErrorMessage, uploadVideos } from "../services/api";
 
 interface AddVideoModalProps {
   isOpen: boolean;
@@ -49,9 +49,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
       onVideoAdded();
       onClose();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to add YouTube video"
-      );
+      setError(getApiErrorMessage(err, "Failed to add YouTube video"));
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +88,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload videos");
+      setError(getApiErrorMessage(err, "Failed to upload videos"));
     } finally {
       setIsLoading(false);
     }

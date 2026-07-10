@@ -5,11 +5,11 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
+import { getApiErrorMessage, transcribeVideoUrl, transcribeVideoFile } from "../services/api";
 import type {
   WhisperModelType,
   TranscriptionResponse,
 } from "../types/transcription.types";
-import { transcribeVideoUrl, transcribeVideoFile } from "../services/api";
 import YouTubePlayer, { type YouTubePlayerHandle } from "./YouTubePlayer";
 import { LoadingIndicatorButton } from "./LoadingIndicatorButton";
 
@@ -31,7 +31,7 @@ const TranscriptionForm = forwardRef<
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoObjectUrl, setVideoObjectUrl] = useState<string | null>(null);
   const [videoPosterUrl, setVideoPosterUrl] = useState<string | null>(null);
-  const [language, setLanguage] = useState<string>("");
+  const [language, setLanguage] = useState("");
   const [model, setModel] = useState<WhisperModelType>("small");
   const [isLoading, setIsLoading] = useState(false);
   const youtubePlayerRef = useRef<YouTubePlayerHandle>(null);
@@ -319,10 +319,7 @@ const TranscriptionForm = forwardRef<
 
       onTranscriptionComplete(response);
     } catch (error) {
-      console.error("Error during transcription:", error);
-      onError(
-        error instanceof Error ? error : new Error("An unknown error occurred")
-      );
+      onError(new Error(getApiErrorMessage(error, "An unknown error occurred")));
     } finally {
       setIsLoading(false);
     }

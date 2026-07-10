@@ -8,8 +8,14 @@ import {
   type SearchType,
   SearchTypeNames,
   type LlmAnswer,
+  type LlmSearchResponse,
 } from "../types/search.types";
-import { queryTranscript, getVideoTranscript, API_URL } from "../services/api";
+import {
+  queryTranscript,
+  getVideoTranscript,
+  API_URL,
+  getApiErrorMessage,
+} from "../services/api";
 import { LoadingIndicatorButton } from "./LoadingIndicatorButton";
 import LLMDropdown from "./LLMDropdown";
 
@@ -36,6 +42,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
   onSeekToTime,
   onError,
 }) => {
+  const selectedVideoId = selectedVideo?.id;
+  const selectedVideoStatus = selectedVideo?.status;
+
   const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchScope, setSearchScope] = useState<SearchScope>("all");
@@ -50,14 +59,14 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 
   // Fetch transcript when selected video changes
   useEffect(() => {
-    if (selectedVideo && selectedVideo.status === "completed") {
+    if (selectedVideoId && selectedVideoStatus === "completed") {
       setIsLoadingTranscript(true);
-      getVideoTranscript(selectedVideo.id)
+      getVideoTranscript(selectedVideoId)
         .then((response) => {
           setTranscript(response.segments);
         })
         .catch((err) => {
-          console.error("Failed to fetch transcript:", err);
+          onError(new Error(getApiErrorMessage(err, "Failed to fetch transcript")));
           setTranscript([]);
         })
         .finally(() => {
@@ -66,7 +75,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
     } else {
       setTranscript([]);
     }
-  }, [selectedVideo?.id, selectedVideo?.status]);
+  }, [selectedVideoId, selectedVideoStatus, onError]);
 
   // Group results by video
   const groupedResults = useMemo(() => {
@@ -129,16 +138,17 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
       setResults(response.results);
 
       if (response.searchType === "llm") {
+        const llmResponse = response as LlmSearchResponse;
         setLlmAnswer({
-          summary: (response as any).summary,
-          notAddressed: (response as any).notAddressed,
-          modelId: (response as any).modelId,
+          summary: llmResponse.summary,
+          notAddressed: llmResponse.notAddressed,
+          modelId: llmResponse.modelId,
         });
       } else {
         setLlmAnswer(null);
       }
     } catch (err) {
-      onError(err instanceof Error ? err : new Error("Search failed"));
+      onError(new Error(getApiErrorMessage(err, "Search failed")));
       setResults([]);
       setLlmAnswer(null);
     } finally {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { listLlms, selectLlm } from "../services/api";
+import React, { useState, useEffect, useCallback } from "react";
+import { getApiErrorMessage, listLlms, selectLlm } from "../services/api";
 import type { LlmInfo, LlmListResponse } from "../types/llms.types";
 
 interface LLMDropdownProps {
@@ -14,11 +14,7 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
 
-  useEffect(() => {
-    loadModels();
-  }, []);
-
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     try {
       setIsLoadingModels(true);
       const response: LlmListResponse = await listLlms();
@@ -28,14 +24,15 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
       setSelectedLlmId(response.activeModelId || "");
       onError(null);
     } catch (error) {
-      console.error("Error loading LLM models:", error);
-      onError(
-        error instanceof Error ? error : new Error("Failed to load LLM models")
-      );
+      onError(new Error(getApiErrorMessage(error, "Failed to load LLM models")));
     } finally {
       setIsLoadingModels(false);
     }
-  };
+  }, [onError]);
+
+  useEffect(() => {
+    void loadModels();
+  }, [loadModels]);
 
   const handleModelChange = async (modelId: string) => {
     if (!modelId || modelId === activeModelId) return;
@@ -51,10 +48,7 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
         throw new Error("Failed to select model");
       }
     } catch (error) {
-      console.error("Error selecting LLM model:", error);
-      onError(
-        error instanceof Error ? error : new Error("Failed to select LLM model")
-      );
+      onError(new Error(getApiErrorMessage(error, "Failed to select LLM model")));
       // Reset to previous selection on error
       setSelectedLlmId(activeModelId || "");
     } finally {

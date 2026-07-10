@@ -185,6 +185,82 @@ class SearchService:
             logger.error(f"Failed to retrieve transcript text: {e}")
             raise
 
+    def get_transcript_segments_by_video_id(self, video_id: str) -> list[dict]:
+        """Return transcript segments for a video sorted by start time."""
+        try:
+            results = self._collection.get(where={"video_id": video_id})
+            if not results or not results.get("documents"):
+                return []
+
+            segments = []
+            for i, doc in enumerate(results["documents"]):
+                metadata = results["metadatas"][i]
+                segments.append(
+                    {
+                        "segment_id": metadata["id"],
+                        "start_time": metadata["start_time"],
+                        "end_time": metadata["end_time"],
+                        "text": doc,
+                    }
+                )
+
+            segments.sort(key=lambda s: s["start_time"])
+            return segments
+        except Exception as e:
+            logger.error(f"Failed to get transcript segments for video {video_id}: {e}")
+            raise
+
+    def get_transcript_segment_count_by_video_id(self, video_id: str) -> int:
+        """Return number of indexed transcript segments for a video."""
+        try:
+            results = self._collection.get(where={"video_id": video_id})
+            return len(results.get("documents", [])) if results else 0
+        except Exception as e:
+            logger.error(f"Failed to count transcript segments for video {video_id}: {e}")
+            raise
+
+    def delete_video_index_data(self, video_id: str) -> dict:
+        """Delete transcript and visual index data for a given video ID."""
+        deleted = {"transcript": 0, "visual": 0}
+        try:
+            transcript_results = self._collection.get(where={"video_id": video_id})
+            transcript_ids = transcript_results.get("ids", []) if transcript_results else []
+            if transcript_ids:
+                self._collection.delete(ids=transcript_ids)
+                deleted["transcript"] = len(transcript_ids)
+
+            visual_results = self._visual_collection.get(where={"video_id": video_id})
+            visual_ids = visual_results.get("ids", []) if visual_results else []
+            if visual_ids:
+                self._visual_collection.delete(ids=visual_ids)
+                deleted["visual"] = len(visual_ids)
+
+            return deleted
+        except Exception as e:
+            logger.error(f"Failed deleting index data for video {video_id}: {e}")
+            raise
+
+    def clear_all_index_data(self) -> dict:
+        """Delete all transcript and visual index data."""
+        deleted = {"transcript": 0, "visual": 0}
+        try:
+            all_results = self._collection.get()
+            transcript_ids = all_results.get("ids", []) if all_results else []
+            if transcript_ids:
+                self._collection.delete(ids=transcript_ids)
+                deleted["transcript"] = len(transcript_ids)
+
+            all_visual = self._visual_collection.get()
+            visual_ids = all_visual.get("ids", []) if all_visual else []
+            if visual_ids:
+                self._visual_collection.delete(ids=visual_ids)
+                deleted["visual"] = len(visual_ids)
+
+            return deleted
+        except Exception as e:
+            logger.error(f"Failed clearing all index data: {e}")
+            raise
+
     def _build_where_filter(self, video_ids: Optional[list[str]]) -> Optional[dict]:
         """Build ChromaDB where filter for video IDs."""
         if not video_ids:

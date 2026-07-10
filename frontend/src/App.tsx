@@ -5,7 +5,15 @@ import VideoPlayer, { type VideoPlayerHandle } from "./components/VideoPlayer";
 import AddVideoModal from "./components/AddVideoModal";
 import SearchPanel from "./components/SearchPanel";
 import type { VideoMetadata, VideosByGroup } from "./types/library.types";
-import { getVideoGroups, getProcessingStatus } from "./services/api";
+import {
+  getApiErrorMessage,
+  getVideoGroups,
+  getProcessingStatus,
+} from "./services/api";
+
+const POLL_INTERVAL_PROCESSING_MS = 3000;
+const POLL_INTERVAL_IDLE_MS = 10000;
+const POLL_INTERVAL_HIDDEN_MS = 30000;
 
 const App: React.FC = () => {
   const [videoGroups, setVideoGroups] = useState<VideosByGroup[]>([]);
@@ -25,18 +33,22 @@ const App: React.FC = () => {
       const response = await getVideoGroups();
       setVideoGroups(response.groups);
 
-      // Update selected video if it was updated
-      if (selectedVideo) {
-        const allVideos = response.groups.flatMap((g) => g.videos);
-        const updatedVideo = allVideos.find((v) => v.id === selectedVideo.id);
-        if (updatedVideo) {
-          setSelectedVideo(updatedVideo);
+      // Update selected video if it was updated.
+      setSelectedVideo((previousVideo) => {
+        if (!previousVideo) {
+          return previousVideo;
         }
-      }
+        const allVideos = response.groups.flatMap((g) => g.videos);
+        const updatedVideo = allVideos.find((v) => v.id === previousVideo.id);
+        if (updatedVideo) {
+          return updatedVideo;
+        }
+        return previousVideo;
+      });
     } catch (err) {
-      console.error("Error fetching video library:", err);
+      setError(getApiErrorMessage(err, "Failed to fetch video library"));
     }
-  }, [selectedVideo]);
+  }, []);
 
   const fetchProcessingStatus = useCallback(async () => {
     try {
@@ -44,19 +56,39 @@ const App: React.FC = () => {
       setProcessingCount(status.queueLength + status.processing.length);
       return status.queueLength + status.processing.length;
     } catch (err) {
-      console.error("Error fetching processing status:", err);
+      setError(getApiErrorMessage(err, "Failed to fetch processing status"));
       return 0;
     }
   }, []);
 
   // Initial fetch
   useEffect(() => {
-    fetchVideoLibrary();
-  }, []);
+    void fetchVideoLibrary();
+  }, [fetchVideoLibrary]);
 
   // Polling for updates when processing
   useEffect(() => {
-    const pollInterval = setInterval(async () => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isCancelled = false;
+
+    const scheduleNextPoll = (count: number) => {
+      if (isCancelled) {
+        return;
+      }
+
+      const nextInterval =
+        count > 0
+          ? POLL_INTERVAL_PROCESSING_MS
+          : document.visibilityState === "hidden"
+            ? POLL_INTERVAL_HIDDEN_MS
+            : POLL_INTERVAL_IDLE_MS;
+
+      timeoutId = setTimeout(() => {
+        void poll();
+      }, nextInterval);
+    };
+
+    const poll = async () => {
       const count = await fetchProcessingStatus();
       const prevCount = prevProcessingCountRef.current;
 
@@ -66,9 +98,33 @@ const App: React.FC = () => {
       }
 
       prevProcessingCountRef.current = count;
-    }, 3000);
+      scheduleNextPoll(count);
+    };
 
-    return () => clearInterval(pollInterval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      timeoutId = setTimeout(() => {
+        void poll();
+      }, 0);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    void poll();
+
+    return () => {
+      isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchProcessingStatus, fetchVideoLibrary]);
 
   const handleSelectVideo = (video: VideoMetadata) => {

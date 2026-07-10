@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import HttpUrl
+from pydantic import HttpUrl, field_validator
 
 from app.models.camel_case import CamelCaseModel
 
@@ -44,6 +44,29 @@ class AddYouTubeVideoRequest(CamelCaseModel):
     url: HttpUrl
     model: str = "base"
     language: Optional[str] = None
+
+    @field_validator("url")
+    @classmethod
+    def validate_youtube_url(cls, value: HttpUrl) -> HttpUrl:
+        allowed_hosts = {
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+            "youtu.be",
+        }
+        if value.host not in allowed_hosts:
+            raise ValueError("Only YouTube URLs are supported")
+        return value
+
+    @field_validator("model")
+    @classmethod
+    def validate_whisper_model(cls, value: str) -> str:
+        allowed_models = {"tiny", "base", "small", "medium", "large", "turbo"}
+        if value not in allowed_models:
+            raise ValueError(
+                f"Unsupported whisper model '{value}'. Allowed: {sorted(allowed_models)}"
+            )
+        return value
 
 
 class AddVideoResponse(CamelCaseModel):

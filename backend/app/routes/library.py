@@ -1,10 +1,12 @@
 import logging
 import os
 import shutil
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
+from app.config import get_settings
 from app.models.video import (
     AddVideosResponse,
     AddVideoResponse,
@@ -16,9 +18,8 @@ from app.models.video import (
     VideoMetadata,
     VideoTranscriptResponse,
 )
-from app.services.background_processor import background_processor
-from app.services.search import search_service
-from app.services.video_library import video_library_service
+from app.services.video_library import SUPPORTED_VIDEO_EXTENSIONS, video_library_service
+from app.utils.api_errors import build_error_response
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,17 +29,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 library_router = APIRouter()
+settings = get_settings()
 
-ALLOWED_VIDEO_TYPES = [
-    "video/mp4",
-    "video/avi",
-    "video/mov",
-    "video/quicktime",
-    "video/x-msvideo",
-    "video/x-matroska",
-    "video/mkv",
-    "video/webm",
-]
+ALLOWED_VIDEO_TYPES = set(settings.allowed_video_content_types)
+ALLOWED_WHISPER_MODELS = set(settings.allowed_whisper_models)
+
+
+def _get_search_service():
+    from app.services.search import search_service
+
+    return search_service
+
+
+def _get_background_processor():
+    from app.services.background_processor import background_processor
+
+    return background_processor
 
 
 @library_router.get("/videos", response_model=VideoLibraryResponse)
@@ -80,13 +86,12 @@ async def get_video(video_id: str):
     transcript_text = None
     segment_count = 0
     try:
+        search_service = _get_search_service()
         transcript_text = search_service.get_transcript_text_by_video_id(video_id)
         if transcript_text:
-            # Count segments by querying the collection
-            results = search_service._collection.get(
-                where={"video_id": video_id}
+            segment_count = search_service.get_transcript_segment_count_by_video_id(
+                video_id
             )
-            segment_count = len(results.get("documents", []))
     except Exception as e:
         logger.warning(f"Could not get transcript for video {video_id}: {e}")
 
@@ -107,38 +112,34 @@ async def get_video_transcript(video_id: str):
         )
 
     try:
-        results = search_service._collection.get(where={"video_id": video_id})
+        search_service = _get_search_service()
+        segments_data = search_service.get_transcript_segments_by_video_id(video_id)
 
-        if not results or not results["documents"]:
+        if not segments_data:
             return VideoTranscriptResponse(
                 video_id=video_id, video_title=video.title, segments=[]
             )
 
-        # Build segments from results
-        segments = []
-        for i, doc in enumerate(results["documents"]):
-            metadata = results["metadatas"][i]
-            segments.append(
-                TranscriptSegmentResponse(
-                    segment_id=metadata["id"],
-                    start_time=metadata["start_time"],
-                    end_time=metadata["end_time"],
-                    text=doc,
-                )
+        segments = [
+            TranscriptSegmentResponse(
+                segment_id=segment["segment_id"],
+                start_time=segment["start_time"],
+                end_time=segment["end_time"],
+                text=segment["text"],
             )
-
-        # Sort by start time
-        segments.sort(key=lambda s: s.start_time)
+            for segment in segments_data
+        ]
 
         return VideoTranscriptResponse(
             video_id=video_id, video_title=video.title, segments=segments
         )
 
-    except Exception as e:
-        logger.error(f"Error fetching transcript for video {video_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch transcript",
+    except Exception as exc:
+        logger.error(f"Error fetching transcript for video {video_id}: {exc}")
+        return build_error_response(
+            status_code=500,
+            code="TRANSCRIPT_FETCH_FAILED",
+            message="Failed to fetch transcript",
         )
 
 
@@ -151,14 +152,16 @@ async def add_youtube_video(request: AddYouTubeVideoRequest):
         response = video_library_service.add_youtube_video(str(request.url), request.model)
 
         # Enqueue for background processing
+        background_processor = _get_background_processor()
         await background_processor.enqueue(response.video_id)
 
         return response
-    except Exception as e:
-        logger.error(f"Error adding YouTube video: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add video: {str(e)}",
+    except Exception as exc:
+        logger.error(f"Error adding YouTube video: {exc}")
+        return build_error_response(
+            status_code=500,
+            code="YOUTUBE_VIDEO_ADD_FAILED",
+            message="Failed to add video",
         )
 
 
@@ -170,11 +173,40 @@ async def upload_videos(
     """Upload one or more video files to the library."""
     logger.info(f"Uploading {len(files)} video file(s) with model: {model}")
 
+    if model not in ALLOWED_WHISPER_MODELS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported whisper model '{model}'",
+        )
+
+    if len(files) > settings.max_upload_files_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Too many files uploaded in one request. "
+                f"Maximum allowed: {settings.max_upload_files_per_request}"
+            ),
+        )
+
     added = []
     errors = []
 
     for file in files:
         try:
+            if not file.filename:
+                errors.append({"filename": "<missing>", "error": "Missing filename"})
+                continue
+
+            suffix = Path(file.filename).suffix.lower()
+            if suffix not in SUPPORTED_VIDEO_EXTENSIONS:
+                errors.append(
+                    {
+                        "filename": file.filename,
+                        "error": f"Unsupported extension: {suffix or '<none>'}",
+                    }
+                )
+                continue
+
             # Validate file type
             if file.content_type not in ALLOWED_VIDEO_TYPES:
                 errors.append(
@@ -188,6 +220,22 @@ async def upload_videos(
             # Read file content
             content = await file.read()
 
+            if not content:
+                errors.append({"filename": file.filename, "error": "File is empty"})
+                continue
+
+            if len(content) > settings.max_upload_file_size_bytes:
+                errors.append(
+                    {
+                        "filename": file.filename,
+                        "error": (
+                            "File exceeds max allowed size of "
+                            f"{settings.max_upload_file_size_mb} MB"
+                        ),
+                    }
+                )
+                continue
+
             # Add to library
             response = video_library_service.add_uploaded_video(
                 file.filename or "video.mp4", content, model
@@ -195,6 +243,7 @@ async def upload_videos(
             added.append(response)
 
             # Enqueue for background processing
+            background_processor = _get_background_processor()
             await background_processor.enqueue(response.video_id)
 
             logger.info(f"Added video: {file.filename} ({response.video_id})")
@@ -217,13 +266,14 @@ async def delete_video(video_id: str):
 
     # Delete from ChromaDB
     try:
-        # Delete transcript segments
-        search_service._collection.delete(where={"video_id": video_id})
-        logger.info(f"Deleted transcript segments for video {video_id}")
-
-        # Delete visual embeddings
-        search_service._visual_collection.delete(where={"video_id": video_id})
-        logger.info(f"Deleted visual embeddings for video {video_id}")
+        search_service = _get_search_service()
+        deleted = search_service.delete_video_index_data(video_id)
+        logger.info(
+            "Deleted index data for video %s (transcript=%s, visual=%s)",
+            video_id,
+            deleted["transcript"],
+            deleted["visual"],
+        )
     except Exception as e:
         logger.error(f"Error deleting from ChromaDB: {e}")
 
@@ -242,6 +292,7 @@ async def delete_video(video_id: str):
 @library_router.get("/status", response_model=ProcessingStatusResponse)
 async def get_processing_status():
     """Get the current processing queue status."""
+    background_processor = _get_background_processor()
     status = background_processor.get_status()
     return ProcessingStatusResponse(
         queue_length=status["queue_length"],
@@ -268,6 +319,7 @@ async def retry_video(video_id: str):
     from app.models.video import ProcessingStatus
 
     video_library_service.update_video_status(video_id, ProcessingStatus.PENDING)
+    background_processor = _get_background_processor()
     await background_processor.enqueue(video_id)
 
     return {"message": "Video re-queued for processing", "video_id": video_id}
@@ -280,17 +332,13 @@ async def clear_library():
 
     # Clear ChromaDB collections
     try:
-        # Get all unique transcript IDs from the collection
-        all_results = search_service._collection.get()
-        if all_results and all_results["ids"]:
-            search_service._collection.delete(ids=all_results["ids"])
-            logger.info(f"Deleted {len(all_results['ids'])} transcript segments from ChromaDB")
-
-        # Clear visual embeddings
-        all_visual = search_service._visual_collection.get()
-        if all_visual and all_visual["ids"]:
-            search_service._visual_collection.delete(ids=all_visual["ids"])
-            logger.info(f"Deleted {len(all_visual['ids'])} visual embeddings from ChromaDB")
+        search_service = _get_search_service()
+        deleted = search_service.clear_all_index_data()
+        logger.info(
+            "Cleared index data (transcript=%s, visual=%s)",
+            deleted["transcript"],
+            deleted["visual"],
+        )
     except Exception as e:
         logger.error(f"Error clearing ChromaDB: {e}")
 

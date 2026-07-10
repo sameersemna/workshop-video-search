@@ -32,13 +32,161 @@ import type {
 } from "../types/library.types";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9091";
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? "30000");
+const API_READ_RETRY_COUNT = Number(import.meta.env.VITE_API_READ_RETRY_COUNT ?? "1");
+const API_RETRY_DELAY_MS = Number(import.meta.env.VITE_API_RETRY_DELAY_MS ?? "300");
+
+type ApiErrorEnvelope = {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: unknown;
+  };
+};
+
+export class ApiRequestError extends Error {
+  statusCode?: number;
+  code?: string;
+  details?: unknown;
+  isTimeout: boolean;
+  isNetworkError: boolean;
+
+  constructor(params: {
+    message: string;
+    statusCode?: number;
+    code?: string;
+    details?: unknown;
+    isTimeout?: boolean;
+    isNetworkError?: boolean;
+  }) {
+    super(params.message);
+    this.name = "ApiRequestError";
+    this.statusCode = params.statusCode;
+    this.code = params.code;
+    this.details = params.details;
+    this.isTimeout = params.isTimeout ?? false;
+    this.isNetworkError = params.isNetworkError ?? false;
+  }
+}
+
+export const getApiErrorMessage = (
+  error: unknown,
+  fallbackMessage = "Request failed"
+): string => {
+  if (error instanceof ApiRequestError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallbackMessage;
+};
 
 const apiClient = axios.create({
   baseURL: API_URL,
+  timeout: API_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+const sleep = async (ms: number): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const toApiRequestError = (error: unknown): ApiRequestError => {
+  if (!axios.isAxiosError(error)) {
+    if (error instanceof Error) {
+      return new ApiRequestError({ message: error.message });
+    }
+    return new ApiRequestError({ message: "Unexpected error while communicating with API" });
+  }
+
+  const statusCode = error.response?.status;
+  const responseData = error.response?.data as ApiErrorEnvelope | undefined;
+  const envelope = responseData?.error;
+
+  const isTimeout = error.code === "ECONNABORTED";
+  const isNetworkError = !error.response;
+
+  if (isTimeout) {
+    return new ApiRequestError({
+      message: "The request timed out. Please try again.",
+      statusCode,
+      code: envelope?.code,
+      details: envelope?.details,
+      isTimeout: true,
+      isNetworkError,
+    });
+  }
+
+  if (envelope?.message) {
+    return new ApiRequestError({
+      message: envelope.message,
+      statusCode,
+      code: envelope.code,
+      details: envelope.details,
+      isTimeout,
+      isNetworkError,
+    });
+  }
+
+  if (isNetworkError) {
+    return new ApiRequestError({
+      message: "Unable to reach the API. Check your connection and try again.",
+      statusCode,
+      isTimeout,
+      isNetworkError: true,
+    });
+  }
+
+  return new ApiRequestError({
+    message: error.message || "Request failed",
+    statusCode,
+    isTimeout,
+    isNetworkError,
+  });
+};
+
+const shouldRetry = (
+  error: ApiRequestError,
+  attempt: number,
+  retryCount: number
+): boolean => {
+  if (attempt >= retryCount) {
+    return false;
+  }
+
+  if (error.isTimeout || error.isNetworkError) {
+    return true;
+  }
+
+  if (typeof error.statusCode === "number" && error.statusCode >= 500) {
+    return true;
+  }
+
+  return false;
+};
+
+const executeApiRequest = async <T>(
+  request: () => Promise<T>,
+  options?: { retries?: number; retryDelayMs?: number }
+): Promise<T> => {
+  const retryCount = options?.retries ?? 0;
+  const retryDelayMs = options?.retryDelayMs ?? API_RETRY_DELAY_MS;
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      const normalizedError = toApiRequestError(error);
+      if (!shouldRetry(normalizedError, attempt, retryCount)) {
+        throw normalizedError;
+      }
+      await sleep(retryDelayMs * (attempt + 1));
+    }
+  }
+};
 
 export const transcribeVideoUrl = async (
   videoUrl: string,
@@ -53,16 +201,13 @@ export const transcribeVideoUrl = async (
     language: language === "" ? null : language,
   };
 
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.post<TranscriptionResponse>(
       "/transcribe/video-url",
       requestBody
     );
     return response.data;
-  } catch (error) {
-    console.error("Error during transcription:", error);
-    throw error;
-  }
+  });
 };
 
 export const transcribeVideoFile = async (
@@ -81,9 +226,9 @@ export const transcribeVideoFile = async (
     formData.append("language", language);
   }
 
-  try {
-    const response = await axios.post<TranscriptionResponse>(
-      `${API_URL}/transcribe/video-file`,
+  return executeApiRequest(async () => {
+    const response = await apiClient.post<TranscriptionResponse>(
+      "/transcribe/video-file",
       formData,
       {
         headers: {
@@ -92,10 +237,7 @@ export const transcribeVideoFile = async (
       }
     );
     return response.data;
-  } catch (error) {
-    console.error("Error during file transcription:", error);
-    throw error;
-  }
+  });
 };
 
 export const queryTranscript = async (
@@ -111,48 +253,36 @@ export const queryTranscript = async (
     searchType,
   };
 
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.post<QuestionResponse>(
       "/search/query",
       requestBody
     );
     return response.data;
-  } catch (error) {
-    console.error("Error during query:", error);
-    throw error;
-  }
+  });
 };
 
 export const getCurrentLlmInfo = async (): Promise<LlmInfo | null> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.get("/llms/current");
     return response.data;
-  } catch (error) {
-    console.error("Error while retrieving current LLM info:", error);
-    throw error;
-  }
+  }, { retries: API_READ_RETRY_COUNT });
 };
 
 export const listLlms = async (): Promise<LlmListResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.get("/llms");
     return response.data;
-  } catch (error) {
-    console.error("Error while retrieving list of available models", error);
-    throw error;
-  }
+  }, { retries: API_READ_RETRY_COUNT });
 };
 
 export const selectLlm = async (
   modelId: string
 ): Promise<LlmSelectResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.post("/llms/select", { modelId });
     return response.data;
-  } catch (error) {
-    console.error(`Error selecting model ${modelId}`, error);
-    throw error;
-  }
+  });
 };
 
 export const summarizeTranscript = async (
@@ -162,58 +292,46 @@ export const summarizeTranscript = async (
     videoId,
   };
 
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.post<SummarizationResponse>(
       "/summarize/transcript",
       requestBody
     );
     return response.data;
-  } catch (error) {
-    console.error("Error during summarization:", error);
-    throw error;
-  }
+  });
 };
 
 // Video Library API functions
 
 export const getVideoLibrary = async (): Promise<VideoLibraryResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.get<VideoLibraryResponse>(
       "/library/videos"
     );
     return response.data;
-  } catch (error) {
-    console.error("Error fetching video library:", error);
-    throw error;
-  }
+  }, { retries: API_READ_RETRY_COUNT });
 };
 
 export const getVideoGroups = async (): Promise<VideoGroupsResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.get<VideoGroupsResponse>(
       "/library/videos/grouped"
     );
     return response.data;
-  } catch (error) {
-    console.error("Error fetching video groups:", error);
-    throw error;
-  }
+  }, { retries: API_READ_RETRY_COUNT });
 };
 
 export const addYouTubeVideo = async (
   url: string,
   model: string = "base"
 ): Promise<AddVideoResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.post<AddVideoResponse>(
       "/library/videos/youtube",
       { url, model }
     );
     return response.data;
-  } catch (error) {
-    console.error("Error adding YouTube video:", error);
-    throw error;
-  }
+  });
 };
 
 export const uploadVideos = async (
@@ -226,9 +344,9 @@ export const uploadVideos = async (
   });
   formData.append("model", model);
 
-  try {
-    const response = await axios.post<AddVideosResponse>(
-      `${API_URL}/library/videos/upload`,
+  return executeApiRequest(async () => {
+    const response = await apiClient.post<AddVideosResponse>(
+      "/library/videos/upload",
       formData,
       {
         headers: {
@@ -237,55 +355,40 @@ export const uploadVideos = async (
       }
     );
     return response.data;
-  } catch (error) {
-    console.error("Error uploading videos:", error);
-    throw error;
-  }
+  });
 };
 
 export const deleteVideo = async (videoId: string): Promise<void> => {
-  try {
+  return executeApiRequest(async () => {
     await apiClient.delete(`/library/videos/${videoId}`);
-  } catch (error) {
-    console.error("Error deleting video:", error);
-    throw error;
-  }
+  });
 };
 
 export const getProcessingStatus =
   async (): Promise<ProcessingStatusResponse> => {
-    try {
+    return executeApiRequest(async () => {
       const response = await apiClient.get<ProcessingStatusResponse>(
         "/library/status"
       );
       return response.data;
-    } catch (error) {
-      console.error("Error fetching processing status:", error);
-      throw error;
-    }
+    }, { retries: API_READ_RETRY_COUNT });
   };
 
 export const retryVideo = async (videoId: string): Promise<void> => {
-  try {
+  return executeApiRequest(async () => {
     await apiClient.post(`/library/videos/${videoId}/retry`);
-  } catch (error) {
-    console.error("Error retrying video:", error);
-    throw error;
-  }
+  });
 };
 
 export const getVideoTranscript = async (
   videoId: string
 ): Promise<VideoTranscriptResponse> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.get<VideoTranscriptResponse>(
       `/library/videos/${videoId}/transcript`
     );
     return response.data;
-  } catch (error) {
-    console.error("Error fetching video transcript:", error);
-    throw error;
-  }
+  }, { retries: API_READ_RETRY_COUNT });
 };
 
 export const clearLibrary = async (): Promise<{
@@ -293,13 +396,10 @@ export const clearLibrary = async (): Promise<{
   deletedCount: number;
   errors: Array<{ videoId: string; error: string }>;
 }> => {
-  try {
+  return executeApiRequest(async () => {
     const response = await apiClient.delete("/library/clear");
     return response.data;
-  } catch (error) {
-    console.error("Error clearing library:", error);
-    throw error;
-  }
+  });
 };
 
 // Helper functions for media URLs

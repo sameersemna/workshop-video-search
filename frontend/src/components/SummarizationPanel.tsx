@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { summarizeTranscript } from "../services/api";
+import { getApiErrorMessage, summarizeTranscript } from "../services/api";
 import { LoadingIndicatorButton } from "./LoadingIndicatorButton";
 
 interface SummarizationPanelProps {
@@ -23,10 +23,7 @@ const SummarizationPanel: React.FC<SummarizationPanelProps> = ({
       const response = await summarizeTranscript(videoId);
       setSummary(response.summary);
     } catch (error) {
-      console.error("Error during summarization:", error);
-      onError(
-        error instanceof Error ? error : new Error("Summarization failed")
-      );
+      onError(new Error(getApiErrorMessage(error, "Summarization failed")));
     } finally {
       setIsLoading(false);
     }
