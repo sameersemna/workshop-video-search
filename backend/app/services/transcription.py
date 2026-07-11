@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import asyncio
 import threading
+import requests
 import torch
 import whisper
 from typing import Dict
@@ -21,6 +22,15 @@ DEFAULT_MODEL = "small"
 # Lock to ensure only one transcription runs at a time (Whisper is not thread-safe)
 _transcription_lock = threading.Lock()
 
+# "local" (default): use the openai-whisper model bundled in this container.
+# "remote": send audio to an external whisper.cpp-compatible /inference server
+# (e.g. a shared GPU host) instead of transcribing in-process.
+WHISPER_BACKEND = os.getenv("WHISPER_BACKEND", "local").lower()
+WHISPER_SERVER_URL = os.getenv("WHISPER_SERVER_URL", "http://host.docker.internal:8768").rstrip("/")
+# Remote requests can take a while for long videos; the server has no
+# streaming progress, so we just wait for the full response.
+WHISPER_REMOTE_TIMEOUT_SECONDS = int(os.getenv("WHISPER_REMOTE_TIMEOUT_SECONDS", "1800"))
+
 
 def get_model(model_name: str = DEFAULT_MODEL) -> whisper.Whisper:
     try:
@@ -37,20 +47,61 @@ def get_model(model_name: str = DEFAULT_MODEL) -> whisper.Whisper:
         raise RuntimeError(f"Model loading failed: {e}")
 
 
+def _transcribe_remote(audio_path: str, language: str) -> dict:
+    """
+    Transcribe audio via an external whisper.cpp-compatible server's
+    /inference endpoint (see WHISPER_SERVER_URL). The model used is
+    whatever the remote server was started with; model_name is not
+    forwarded since it's not this process's model to choose.
+    """
+    url = f"{WHISPER_SERVER_URL}/inference"
+    logger.info(f"Transcribing audio via remote Whisper server: {url}")
+
+    try:
+        with open(audio_path, "rb") as f:
+            files = {"file": (os.path.basename(audio_path), f, "audio/mpeg")}
+            data = {"response_format": "verbose_json"}
+            if language:
+                data["language"] = language
+            response = requests.post(
+                url, files=files, data=data, timeout=WHISPER_REMOTE_TIMEOUT_SECONDS
+            )
+        response.raise_for_status()
+        result = response.json()
+        logger.info("Remote transcription completed successfully.")
+        return result
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(
+            f"Could not reach remote Whisper server at {WHISPER_SERVER_URL}: {e}"
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError(
+            f"Remote Whisper server at {WHISPER_SERVER_URL} timed out after "
+            f"{WHISPER_REMOTE_TIMEOUT_SECONDS}s"
+        )
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(f"Remote Whisper server returned an error: {e}")
+
+
 def transcribe_audio(audio_path: str, model_name: str, language: str) -> dict:
     """
-    Transcribe audio using Whisper model.
+    Transcribe audio using Whisper, either locally (in-process, GPU/CPU in
+    this container) or via a remote whisper.cpp server, depending on
+    WHISPER_BACKEND.
 
-    Uses a lock to ensure thread-safety since Whisper/PyTorch models
-    are not safe to use concurrently from multiple threads.
+    The local path uses a lock to ensure thread-safety since Whisper/PyTorch
+    models are not safe to use concurrently from multiple threads.
     """
-    # Verify audio file exists and has content before acquiring lock
+    # Verify audio file exists and has content before doing anything else
     if not os.path.exists(audio_path):
         raise RuntimeError(f"Audio file does not exist: {audio_path}")
 
     file_size = os.path.getsize(audio_path)
     if file_size < 1000:
         raise RuntimeError(f"Audio file is too small ({file_size} bytes), cannot transcribe")
+
+    if WHISPER_BACKEND == "remote":
+        return _transcribe_remote(audio_path, language)
 
     # Acquire lock for model loading and transcription
     logger.info(f"Waiting for transcription lock (model: {model_name})...")

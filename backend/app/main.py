@@ -16,7 +16,7 @@ from app.routes.transcription import transcription_router
 from app.services.background_processor import background_processor
 from app.services.llms import llm_service
 from app.services.search import search_service
-from app.services.transcription import get_model, model_cache
+from app.services.transcription import get_model, model_cache, WHISPER_BACKEND
 from app.utils.exception_handlers import register_exception_handlers
 from app.utils.health import build_default_health_checks, build_health_response
 from app.services.video_library import video_library_service
@@ -36,12 +36,17 @@ async def lifespan(app: FastAPI):
     Load default model into memory on startup, start background processor,
     and clean up on shutdown.
     """
-    logger.info("Loading default model...")
-    try:
-        get_model()
-    except Exception as e:
-        logger.error(f"Error loading model: {e}")
-        raise RuntimeError(f"Model loading failed: {e}")
+    if WHISPER_BACKEND == "remote":
+        logger.info(
+            "WHISPER_BACKEND=remote: skipping local Whisper model load."
+        )
+    else:
+        logger.info("Loading default model...")
+        try:
+            get_model()
+        except Exception as e:
+            logger.error(f"Error loading model: {e}")
+            raise RuntimeError(f"Model loading failed: {e}")
 
     # Start background processor
     logger.info("Starting background processor...")
