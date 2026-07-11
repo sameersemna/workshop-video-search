@@ -130,12 +130,12 @@ async def transcribe_video_url(
         transcript_text = result["text"]
         segments = [
             TranscriptSegment(
-                id=build_segment_id(id, seg["start"], seg["end"], seg["text"]),
+                id=build_segment_id(id, i, seg["start"], seg["end"], seg["text"]),
                 start=seg["start"],
                 end=seg["end"],
                 text=seg["text"],
             )
-            for seg in result["segments"]
+            for i, seg in enumerate(result["segments"])
         ]
 
         # Index text transcript
@@ -296,12 +296,12 @@ async def transcribe_video_file(
         transcript_text = result["text"]
         segments = [
             TranscriptSegment(
-                id=build_segment_id(id, seg["start"], seg["end"], seg["text"]),
+                id=build_segment_id(id, i, seg["start"], seg["end"], seg["text"]),
                 start=seg["start"],
                 end=seg["end"],
                 text=seg["text"],
             )
-            for seg in result["segments"]
+            for i, seg in enumerate(result["segments"])
         ]
 
         # Index text transcript

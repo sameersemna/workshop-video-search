@@ -168,12 +168,12 @@ class BackgroundProcessor:
             transcript_text = result["text"]
             segments = [
                 TranscriptSegment(
-                    id=build_segment_id(video_id, seg["start"], seg["end"], seg["text"]),
+                    id=build_segment_id(video_id, i, seg["start"], seg["end"], seg["text"]),
                     start=seg["start"],
                     end=seg["end"],
                     text=seg["text"],
                 )
-                for seg in result["segments"]
+                for i, seg in enumerate(result["segments"])
             ]
 
             # Step 6: Index transcript in ChromaDB
