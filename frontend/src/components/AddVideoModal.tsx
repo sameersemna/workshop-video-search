@@ -113,11 +113,11 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
         />
 
         {/* Modal */}
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
           {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
             disabled={isLoading}
           >
             <svg
@@ -135,18 +135,18 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
             </svg>
           </button>
 
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
             Add Videos
           </h2>
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 mb-4">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button
               onClick={() => setActiveTab("upload")}
               className={`px-4 py-2 text-sm font-medium ${
                 activeTab === "upload"
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
               Upload Files
@@ -155,8 +155,8 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
               onClick={() => setActiveTab("youtube")}
               className={`px-4 py-2 text-sm font-medium ml-4 ${
                 activeTab === "youtube"
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
               YouTube URL
@@ -164,8 +164,8 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md dark:bg-red-950 dark:border-red-900">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
@@ -174,7 +174,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
               <div className="mb-4">
                 <label
                   htmlFor="youtube-url"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
                   YouTube URL
                 </label>
@@ -184,7 +184,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500"
                   disabled={isLoading}
                 />
               </div>
@@ -193,7 +193,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                   <svg
                     className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
@@ -211,15 +211,15 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                   Advanced options
                 </button>
                 {showAdvanced && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Whisper Model
                     </label>
                     <div className="relative">
                       <select
                         value={whisperModel}
                         onChange={(e) => setWhisperModel(e.target.value as WhisperModel)}
-                        className="w-full px-3 py-2 pr-8 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer"
+                        className="w-full px-3 py-2 pr-8 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
                         disabled={isLoading}
                       >
                         {WHISPER_MODELS.map((model) => (
@@ -229,12 +229,12 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                         ))}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Larger models are slower but more accurate
                     </p>
                   </div>
@@ -277,11 +277,11 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
           ) : (
             <form onSubmit={handleUploadSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Select Video Files
                 </label>
                 <div
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 transition-colors"
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 transition-colors dark:border-gray-600"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <input
@@ -294,7 +294,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                     disabled={isLoading}
                   />
                   <svg
-                    className="w-12 h-12 mx-auto text-gray-400 mb-2"
+                    className="w-12 h-12 mx-auto text-gray-400 mb-2 dark:text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -306,10 +306,10 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
                   </svg>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 dark:text-gray-400">
                     Click to select or drag and drop
                   </p>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="text-sm text-gray-400 mt-1 dark:text-gray-500">
                     MP4, MKV, AVI, WebM, MOV
                   </p>
                 </div>
@@ -319,12 +319,12 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                     {selectedFiles.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded dark:bg-gray-900"
                       >
-                        <span className="text-sm text-gray-700 truncate">
+                        <span className="text-sm text-gray-700 truncate dark:text-gray-300">
                           {file.name}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </span>
                       </div>
@@ -338,7 +338,7 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                   <svg
                     className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
@@ -356,15 +356,15 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                   Advanced options
                 </button>
                 {showAdvanced && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Whisper Model
                     </label>
                     <div className="relative">
                       <select
                         value={whisperModel}
                         onChange={(e) => setWhisperModel(e.target.value as WhisperModel)}
-                        className="w-full px-3 py-2 pr-8 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer"
+                        className="w-full px-3 py-2 pr-8 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
                         disabled={isLoading}
                       >
                         {WHISPER_MODELS.map((model) => (
@@ -374,12 +374,12 @@ const AddVideoModal: React.FC<AddVideoModalProps> = ({
                         ))}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Larger models are slower but more accurate
                     </p>
                   </div>

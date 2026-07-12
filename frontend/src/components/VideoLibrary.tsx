@@ -17,18 +17,26 @@ interface VideoLibraryProps {
 
 const StatusBadge: React.FC<{ status: ProcessingStatus }> = ({ status }) => {
   const statusConfig = {
-    pending: { bg: "bg-yellow-100", text: "text-yellow-800", label: "Pending" },
+    pending: {
+      bg: "bg-yellow-100 dark:bg-yellow-950",
+      text: "text-yellow-800 dark:text-yellow-400",
+      label: "Pending",
+    },
     processing: {
-      bg: "bg-blue-100",
-      text: "text-blue-800",
+      bg: "bg-blue-100 dark:bg-blue-950",
+      text: "text-blue-800 dark:text-blue-400",
       label: "Processing",
     },
     completed: {
-      bg: "bg-green-100",
-      text: "text-green-800",
+      bg: "bg-green-100 dark:bg-green-950",
+      text: "text-green-800 dark:text-green-400",
       label: "Ready",
     },
-    failed: { bg: "bg-red-100", text: "text-red-800", label: "Failed" },
+    failed: {
+      bg: "bg-red-100 dark:bg-red-950",
+      text: "text-red-800 dark:text-red-400",
+      label: "Failed",
+    },
   };
 
   const config = statusConfig[status];
@@ -89,14 +97,14 @@ const VideoCard: React.FC<{
     <div
       className={`relative p-2 rounded-md cursor-pointer transition-colors ${
         isSelected
-          ? "bg-indigo-100 border-2 border-indigo-500"
-          : "bg-white border border-gray-200 hover:bg-gray-50"
+          ? "bg-indigo-100 border-2 border-indigo-500 dark:bg-indigo-950 dark:border-indigo-500"
+          : "bg-white border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
       }`}
       onClick={onSelect}
     >
       <div className="flex gap-2">
         {/* Thumbnail */}
-        <div className="flex-shrink-0 w-20 h-14 bg-gray-200 rounded overflow-hidden">
+        <div className="flex-shrink-0 w-20 h-14 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
           {video.thumbnailPath && !imageError ? (
             <img
               src={getThumbnailUrl(video.id)}
@@ -105,7 +113,7 @@ const VideoCard: React.FC<{
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -125,11 +133,11 @@ const VideoCard: React.FC<{
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
             {video.title}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {formatDuration(video.duration)}
             </span>
             <StatusBadge status={video.status} />
@@ -143,10 +151,10 @@ const VideoCard: React.FC<{
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="p-1 rounded hover:bg-gray-200"
+            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <svg
-              className="w-4 h-4 text-gray-500"
+              className="w-4 h-4 text-gray-500 dark:text-gray-400"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -155,7 +163,7 @@ const VideoCard: React.FC<{
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+            <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10 dark:bg-gray-800 dark:border-gray-700">
               {video.status === "failed" && (
                 <button
                   onClick={(e) => {
@@ -163,7 +171,7 @@ const VideoCard: React.FC<{
                     onRetry();
                     setShowMenu(false);
                   }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   Retry
                 </button>
@@ -174,7 +182,7 @@ const VideoCard: React.FC<{
                   onDelete();
                   setShowMenu(false);
                 }}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
               >
                 Delete
               </button>
@@ -185,7 +193,7 @@ const VideoCard: React.FC<{
 
       {/* Error message */}
       {video.status === "failed" && video.errorMessage && (
-        <p className="mt-1 text-xs text-red-600 truncate">
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400 truncate">
           {video.errorMessage}
         </p>
       )}
@@ -252,19 +260,19 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
   const totalVideos = groups.reduce((sum, g) => sum + g.videos.length, 0);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white">
+      <div className="p-4 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-900">Video Library</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Video Library</h2>
           <div className="flex items-center gap-1">
             <button
               onClick={onRefresh}
-              className="p-1 rounded hover:bg-gray-100"
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Refresh"
             >
               <svg
-                className="w-5 h-5 text-gray-500"
+                className="w-5 h-5 text-gray-500 dark:text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -280,11 +288,11 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
             {totalVideos > 0 && (
               <button
                 onClick={handleClearLibrary}
-                className="p-1 rounded hover:bg-red-100"
+                className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-950"
                 title="Clear Library"
               >
                 <svg
-                  className="w-5 h-5 text-gray-500 hover:text-red-600"
+                  className="w-5 h-5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -302,7 +310,7 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
         </div>
         <button
           onClick={onAddVideos}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors dark:bg-indigo-600 dark:hover:bg-indigo-500"
         >
           <svg
             className="w-5 h-5"
@@ -320,7 +328,7 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
           Add Videos
         </button>
         {processingCount > 0 && (
-          <p className="mt-2 text-sm text-blue-600">
+          <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
             {processingCount} video(s) processing...
           </p>
         )}
@@ -329,9 +337,9 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
       {/* Video list */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {totalVideos === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <svg
-              className="w-12 h-12 mx-auto mb-4 text-gray-300"
+              className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -353,7 +361,7 @@ const VideoLibrary: React.FC<VideoLibraryProps> = ({
                 <div key={group.name} className="space-y-1">
                   <button
                     onClick={() => toggleGroup(group.name)}
-                    className="flex items-center gap-2 w-full text-left px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded"
+                    className="flex items-center gap-2 w-full text-left px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     <svg
                       className={`w-4 h-4 transition-transform ${

@@ -4,6 +4,7 @@ import VideoLibrary from "./components/VideoLibrary";
 import VideoPlayer, { type VideoPlayerHandle } from "./components/VideoPlayer";
 import AddVideoModal from "./components/AddVideoModal";
 import SearchPanel from "./components/SearchPanel";
+import ThemeToggle from "./components/ThemeToggle";
 import type { VideoMetadata, VideosByGroup } from "./types/library.types";
 import {
   getApiErrorMessage,
@@ -165,7 +166,7 @@ const App: React.FC = () => {
     .map((v) => v.id);
 
   return (
-    <div className="h-screen flex bg-gray-100">
+    <div className="h-screen flex bg-gray-100 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {isSidebarOpen && (
         <div
@@ -177,7 +178,7 @@ const App: React.FC = () => {
       {/* Left Sidebar - Video Library */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 w-72 bg-white border-r border-gray-200
+          fixed inset-y-0 left-0 z-30 w-72 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700
           transform transition-transform duration-300 ease-in-out
           lg:relative lg:translate-x-0 lg:flex-shrink-0
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
@@ -196,13 +197,13 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
+        <header className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 py-3 dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 lg:gap-4">
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                className="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
                 aria-label="Open sidebar"
               >
                 <svg
@@ -225,26 +226,29 @@ const App: React.FC = () => {
                 className="h-8 lg:h-10 w-auto"
               />
               <div className="hidden sm:block">
-                <h1 className="text-lg lg:text-xl font-semibold text-gray-900">
+                <h1 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Video Search
                 </h1>
-                <p className="text-xs lg:text-sm text-gray-500">
+                <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
                   Search across your video library
                 </p>
               </div>
             </div>
-            <img
-              src="/bmbf_logo.png"
-              alt="BMBF Logo"
-              className="h-8 lg:h-10 w-auto"
-            />
+            <div className="flex items-center gap-2 lg:gap-3">
+              <ThemeToggle />
+              <img
+                src="/bmbf_logo.png"
+                alt="BMBF Logo"
+                className="h-8 lg:h-10 w-auto"
+              />
+            </div>
           </div>
         </header>
 
         {/* Error banner */}
         {error && (
-          <div className="flex-shrink-0 bg-red-50 border-b border-red-200 px-4 lg:px-6 py-3">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="flex-shrink-0 bg-red-50 border-b border-red-200 px-4 lg:px-6 py-3 dark:bg-red-950 dark:border-red-900">
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           </div>
         )}
 

@@ -169,9 +169,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-800">
       {/* Search Header */}
-      <div className="flex-shrink-0 p-4 border-b border-gray-200">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
         <form onSubmit={handleSearch} className="space-y-3">
           {/* Search input */}
           <div className="flex gap-2">
@@ -181,14 +181,14 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={`Search using ${SearchTypeNames[activeTab]}...`}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 disabled={isLoading}
               />
               {question && !isLoading && (
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   <svg
                     className="w-5 h-5"
@@ -216,15 +216,15 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
           {/* Search scope toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">Search in:</span>
-              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Search in:</span>
+              <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setSearchScope("all")}
                   className={`px-3 py-1 text-sm ${
                     searchScope === "all"
                       ? "bg-indigo-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   }`}
                 >
                   All Videos
@@ -233,10 +233,10 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                   type="button"
                   onClick={() => setSearchScope("current")}
                   disabled={!selectedVideo}
-                  className={`px-3 py-1 text-sm border-l border-gray-300 ${
+                  className={`px-3 py-1 text-sm border-l border-gray-300 dark:border-gray-600 ${
                     searchScope === "current"
                       ? "bg-indigo-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   } ${!selectedVideo ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Current Video
@@ -252,15 +252,15 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
         </form>
 
         {/* Search Type Tabs */}
-        <div className="flex border-b border-gray-200 mt-4 -mb-px">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 mt-4 -mb-px">
           {(Object.keys(SearchTypeNames) as SearchType[]).map((searchType) => (
             <button
               key={searchType}
               onClick={() => setActiveTab(searchType)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === searchType
-                  ? "text-indigo-600 border-indigo-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
+                  ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400"
+                  : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               {SearchTypeNames[searchType]}
@@ -273,13 +273,13 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-4">
         {/* LLM Answer */}
         {activeTab === "llm" && llmAnswer && (
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-lg mb-2 text-blue-900">
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h3 className="font-semibold text-lg mb-2 text-blue-900 dark:text-blue-300">
               AI Summary
             </h3>
-            <p className="text-gray-700">{llmAnswer.summary}</p>
+            <p className="text-gray-700 dark:text-gray-300">{llmAnswer.summary}</p>
             {llmAnswer.notAddressed && (
-              <p className="mt-2 text-sm text-orange-600">
+              <p className="mt-2 text-sm text-orange-600 dark:text-orange-400">
                 Some aspects of your question could not be answered from the
                 transcripts.
               </p>
@@ -291,9 +291,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
         {hasSearched && groupedResults.length > 0 ? (
           <div className="space-y-4">
             {groupedResults.map(([videoId, { videoTitle, results: videoResults }]) => (
-              <div key={videoId} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div key={videoId} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 {/* Video header */}
-                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                <div className="bg-gray-50 dark:bg-gray-900 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-5 h-5 text-gray-500"
@@ -308,21 +308,21 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                         d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                       />
                     </svg>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
                       {videoTitle}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
                       ({videoResults.length} match{videoResults.length !== 1 ? "es" : ""})
                     </span>
                   </div>
                 </div>
 
                 {/* Results for this video */}
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {videoResults.map((result) => (
                     <div
                       key={result.segmentId}
-                      className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                       onClick={() => handleResultClick(result)}
                     >
                       <div className="flex gap-3">
@@ -332,7 +332,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                             <img
                               src={`${API_URL}${result.framePath}`}
                               alt={`Frame at ${result.frameTimestamp}s`}
-                              className="w-24 h-16 object-cover rounded border border-gray-200"
+                              className="w-24 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
                               loading="lazy"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display =
@@ -344,19 +344,19 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm text-indigo-600 font-medium">
+                            <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
                               {formatTime(result.startTime)} -{" "}
                               {formatTime(result.endTime)}
                             </span>
                             <div className="flex items-center gap-2">
                               {result.relevanceScore && (
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
                                   {result.relevanceScore}%
                                 </span>
                               )}
                             </div>
                           </div>
-                          <p className="text-gray-700 text-sm line-clamp-2">
+                          <p className="text-gray-700 dark:text-gray-300 text-sm line-clamp-2">
                             {result.text}
                           </p>
                         </div>
@@ -368,7 +368,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
             ))}
           </div>
         ) : hasSearched && !isLoading ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <svg
               className="w-12 h-12 mx-auto mb-4 text-gray-300"
               fill="none"
@@ -389,29 +389,29 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
           /* Transcript View (Default when video selected, no search) */
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Transcript ({transcript.length} segments)
               </h3>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
               {transcript.map((segment) => (
                 <div
                   key={segment.segmentId}
-                  className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                   onClick={() => onSeekToTime(segment.startTime)}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-indigo-600 font-medium">
+                    <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
                       {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
                     </span>
                   </div>
-                  <p className="text-gray-700 text-sm">{segment.text}</p>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm">{segment.text}</p>
                 </div>
               ))}
             </div>
           </div>
         ) : !hasSearched && selectedVideo && isLoadingTranscript ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <svg
               className="w-8 h-8 mx-auto mb-4 text-gray-300 animate-spin"
               fill="none"
@@ -434,7 +434,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
             <p>Loading transcript...</p>
           </div>
         ) : !hasSearched ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <svg
               className="w-12 h-12 mx-auto mb-4 text-gray-300"
               fill="none"

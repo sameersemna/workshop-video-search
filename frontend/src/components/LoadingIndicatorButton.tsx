@@ -19,9 +19,9 @@ export const LoadingIndicatorButton: React.FC<LoadingIndicatorButtonProps> = ({
 }) => {
   const baseClasses = "flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500";
   
-  const stateClasses = isLoading || disabled 
-    ? "bg-indigo-400 cursor-not-allowed" 
-    : "bg-indigo-600 hover:bg-indigo-700";
+  const stateClasses = isLoading || disabled
+    ? "bg-indigo-400 cursor-not-allowed dark:bg-indigo-800"
+    : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500";
   
   // If className is provided, it can override w-full
   const widthClass = className?.includes('w-') ? '' : 'w-full';

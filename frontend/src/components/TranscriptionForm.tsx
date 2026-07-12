@@ -328,13 +328,13 @@ const TranscriptionForm = forwardRef<
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 p-6 bg-white rounded-lg shadow-md"
+      className="space-y-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md"
     >
       {/* Unified Input */}
       <div>
         <label
           htmlFor="videoUrl"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           Video Source
         </label>
@@ -345,12 +345,12 @@ const TranscriptionForm = forwardRef<
             value={videoUrl}
             onChange={handleUrlChange}
             placeholder="Enter YouTube URL or choose a file..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500"
             readOnly={!!videoFile}
           />
           <label
             htmlFor="videoFile"
-            className="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-300 rounded-md text-sm font-medium text-indigo-700 hover:bg-indigo-100 cursor-pointer transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-300 rounded-md text-sm font-medium text-indigo-700 hover:bg-indigo-100 cursor-pointer transition-colors dark:bg-indigo-950 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900"
           >
             📁 Browse
             <input
@@ -367,7 +367,7 @@ const TranscriptionForm = forwardRef<
       {/* Video preview container - shown for both URLs and files */}
       {(videoUrl || videoFile) && (
         <div
-          className="mt-4 bg-gray-50 rounded-md"
+          className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-md"
           style={{
             minHeight: "315px",
             transition: "min-height 0.3s ease-in-out",
@@ -388,7 +388,7 @@ const TranscriptionForm = forwardRef<
                 Your browser does not support the video tag.
               </video>
               <div className="mt-2 text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {videoFile.name} • {(videoFile.size / 1024 / 1024).toFixed(2)}{" "}
                   MB
                 </p>
@@ -402,7 +402,7 @@ const TranscriptionForm = forwardRef<
           ) : (
             // Invalid URL message
             <div className="p-4 flex items-center justify-center h-full">
-              <p className="text-gray-400">
+              <p className="text-gray-400 dark:text-gray-500">
                 Enter a valid YouTube URL to see the video player
               </p>
             </div>
@@ -413,7 +413,7 @@ const TranscriptionForm = forwardRef<
         <div>
           <label
             htmlFor="language"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Language
           </label>
@@ -421,7 +421,7 @@ const TranscriptionForm = forwardRef<
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100"
           >
             <option value="">(Auto)</option>
             <option value="de">German</option>
@@ -433,7 +433,7 @@ const TranscriptionForm = forwardRef<
         <div>
           <label
             htmlFor="model"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Whisper Model
           </label>
@@ -446,7 +446,7 @@ const TranscriptionForm = forwardRef<
                 setModel(selectedModel);
               }
             }}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100"
           >
             <option value="tiny">Tiny (Fastest)</option>
             <option value="base">Base</option>

@@ -73,13 +73,13 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
       <div>
         <label
           htmlFor="llm-model"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           LLM Model
         </label>
         <div className="mt-1 flex items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-          <span className="ml-2 text-sm text-gray-600">Loading models...</span>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
+          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading models...</span>
         </div>
       </div>
     );
@@ -89,11 +89,11 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
     <div>
       <label
         htmlFor="llm-model"
-        className="block text-sm font-medium text-gray-700"
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         LLM Model
         {!hasGpu && (
-          <span className="ml-2 text-xs text-yellow-600">
+          <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-500">
             (No GPU - Limited models)
           </span>
         )}
@@ -104,9 +104,9 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
           value={selectedLlmId}
           onChange={(e) => handleModelChange(e.target.value)}
           disabled={isLoading}
-          className={`mt-1 block w-full px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer ${
-            isLoading ? "bg-gray-100 cursor-not-allowed" : "bg-white"
-          } text-gray-900`}
+          className={`mt-1 block w-full px-3 py-2 pr-8 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer dark:border-gray-600 ${
+            isLoading ? "bg-gray-100 cursor-not-allowed dark:bg-gray-800" : "bg-white dark:bg-gray-900"
+          } text-gray-900 dark:text-gray-100`}
         >
           {llms.map((llm) => {
             const isDisabled = llm.requiresGpu && !hasGpu;
@@ -115,7 +115,7 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
                 key={llm.modelId}
                 value={llm.modelId}
                 disabled={isDisabled}
-                className={isDisabled ? "text-gray-400" : ""}
+                className={isDisabled ? "text-gray-400 dark:text-gray-500" : ""}
               >
                 {formatOptionText(llm)}
                 {isDisabled ? " (Requires GPU)" : ""}
@@ -125,9 +125,9 @@ const LLMDropdown: React.FC<LLMDropdownProps> = ({ onError }) => {
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 mt-1">
           {isLoading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
           ) : (
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           )}

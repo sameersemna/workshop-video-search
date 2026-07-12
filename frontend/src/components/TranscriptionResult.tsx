@@ -190,9 +190,9 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 space-y-6">
       <div className="flex items-center flex-col">
-        <h2 className="text-xl font-semibold text-gray-800 text-center flex-1 mb-4">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 text-center flex-1 mb-4">
           Transcription
         </h2>
         <form onSubmit={handleQueryTranscript} className="mb-2 w-full">
@@ -203,7 +203,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={`Search using ${SearchTypeNames[activeTab]}`}
-                className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                 disabled={isLoading}
               />
 
@@ -217,7 +217,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-400 hover:text-gray-600"
+                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -243,9 +243,9 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
 
       {/* Segments */}
       <div>
-        <div className="bg-gray-50 p-4 rounded-md space-y-2 max-h-96 overflow-y-auto">
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md space-y-2 max-h-96 overflow-y-auto">
           {/* Search Type Tabs */}
-          <div className="flex border-b border-gray-200 mb-4">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             {(Object.keys(SearchTypeNames) as SearchType[]).map(
               (searchType, index) => (
                 <button
@@ -253,8 +253,8 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                   onClick={() => handleTabChange(searchType)}
                   className={`px-4 py-2 text-sm font-medium ${index > 0 ? "ml-4" : ""} ${
                     activeTab === searchType
-                      ? "text-indigo-600 border-b-2 border-indigo-600"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   {SearchTypeNames[searchType]}{" "}
@@ -275,12 +275,12 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
 
           {/* LLM Answer Display */}
           {activeTab === "llm" && llmAnswer && (
-            <div className="mb-4 p-4 bg-blue-50 rounded-md border border-blue-200">
-              <h3 className="font-semibold text-lg mb-2">AI Summary</h3>
-              <p className="text-gray-700 mb-3">{llmAnswer.summary}</p>
+            <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-md border border-blue-200 dark:border-blue-800">
+              <h3 className="font-semibold text-lg mb-2 text-gray-900 dark:text-gray-100">AI Summary</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-3">{llmAnswer.summary}</p>
 
               {llmAnswer.notAddressed && (
-                <p className="text-sm text-orange-600 mt-2">
+                <p className="text-sm text-orange-600 dark:text-orange-400 mt-2">
                   ⚠️ Some aspects of your question could not be answered from
                   the transcript.
                 </p>
@@ -294,8 +294,8 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                 key={result.segmentId}
                 className={`p-3 rounded-md cursor-pointer ${
                   activeSegment === result.segmentId
-                    ? "bg-indigo-50 border border-indigo-200"
-                    : "bg-white border border-gray-200"
+                    ? "bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800"
+                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 }`}
                 onClick={() => handleResultClick(result)}
               >
@@ -306,7 +306,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                       <img
                         src={`${API_URL}${result.framePath}`}
                         alt={`Frame at ${result.frameTimestamp}s`}
-                        className="w-32 h-20 object-cover rounded-md border border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer"
+                        className="w-32 h-20 object-cover rounded-md border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer"
                         loading="lazy"
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent parent div click
@@ -321,7 +321,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                   )}
 
                   <div className="flex-1">
-                    <div className="flex justify-between text-sm text-gray-500 mb-1">
+                    <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-1">
                       <span>
                         {formatTime(result.startTime)} -{" "}
                         {formatTime(result.endTime)}
@@ -334,7 +334,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
                         </span>
                       </div>
                     </div>
-                    <p className="text-gray-800">{result.text}</p>
+                    <p className="text-gray-800 dark:text-gray-200">{result.text}</p>
                   </div>
                 </div>
               </div>
@@ -344,7 +344,7 @@ const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
             !isLoading &&
             !error &&
             question && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 No relevant segments found for your question.
               </p>
             )}

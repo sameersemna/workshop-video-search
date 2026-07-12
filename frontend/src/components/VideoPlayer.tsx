@@ -44,10 +44,10 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     if (!video) {
       return (
-        <div className="h-full aspect-video max-w-full flex items-center justify-center bg-gray-800 text-gray-400 rounded-lg">
+        <div className="h-full aspect-video max-w-full flex items-center justify-center bg-gray-800 text-gray-400 rounded-lg dark:bg-gray-900 dark:text-gray-500">
           <div className="text-center">
             <svg
-              className="w-16 h-16 mx-auto mb-4 text-gray-600"
+              className="w-16 h-16 mx-auto mb-4 text-gray-600 dark:text-gray-700"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -67,7 +67,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     if (video.status !== "completed") {
       return (
-        <div className="h-full aspect-video max-w-full flex items-center justify-center bg-gray-800 text-gray-400 rounded-lg">
+        <div className="h-full aspect-video max-w-full flex items-center justify-center bg-gray-800 text-gray-400 rounded-lg dark:bg-gray-900 dark:text-gray-500">
           <div className="text-center">
             {video.status === "processing" ? (
               <>
@@ -91,7 +91,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   />
                 </svg>
                 <p className="text-lg">Processing video...</p>
-                <p className="text-sm text-gray-500 mt-1">{video.title}</p>
+                <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{video.title}</p>
               </>
             ) : video.status === "pending" ? (
               <>
@@ -109,7 +109,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   />
                 </svg>
                 <p className="text-lg">Waiting to process...</p>
-                <p className="text-sm text-gray-500 mt-1">{video.title}</p>
+                <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{video.title}</p>
               </>
             ) : (
               <>
@@ -127,9 +127,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   />
                 </svg>
                 <p className="text-lg">Processing failed</p>
-                <p className="text-sm text-gray-500 mt-1">{video.title}</p>
+                <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{video.title}</p>
                 {video.errorMessage && (
-                  <p className="text-sm text-red-400 mt-2">
+                  <p className="text-sm text-red-400 mt-2 dark:text-red-400">
                     {video.errorMessage}
                   </p>
                 )}
