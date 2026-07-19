@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import type {
   VideoMetadata,
   TranscriptSegment,
@@ -22,6 +22,7 @@ import LLMDropdown from "./LLMDropdown";
 interface SearchPanelProps {
   selectedVideo: VideoMetadata | null;
   allVideoIds: string[];
+  currentTime: number;
   onSeekToTime: (seconds: number, videoId?: string) => void;
   onError: (error: Error | null) => void;
 }
@@ -39,6 +40,7 @@ const formatTime = (seconds: number): string => {
 const SearchPanel: React.FC<SearchPanelProps> = ({
   selectedVideo,
   allVideoIds,
+  currentTime,
   onSeekToTime,
   onError,
 }) => {
@@ -57,10 +59,81 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 
+  // Auto-scroll state for the transcript view.
+  const [autoFollow, setAutoFollow] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const programmaticScrollTimerRef = useRef<number | null>(null);
+
+  // Compute the segment currently playing (the last segment whose startTime <= currentTime).
+  const activeSegmentId = useMemo(() => {
+    if (transcript.length === 0) return null;
+    let lo = 0;
+    let hi = transcript.length - 1;
+    let found = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (transcript[mid].startTime <= currentTime) {
+        found = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return found >= 0 ? transcript[found].segmentId : null;
+  }, [transcript, currentTime]);
+
+  // Auto-scroll the active segment into view while auto-follow is enabled.
+  useEffect(() => {
+    if (!autoFollow || !activeSegmentId) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const el = container.querySelector<HTMLElement>(
+      `[data-segment-id="${CSS.escape(activeSegmentId)}"]`,
+    );
+    if (!el) return;
+    programmaticScrollRef.current = true;
+    if (programmaticScrollTimerRef.current) {
+      window.clearTimeout(programmaticScrollTimerRef.current);
+    }
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    programmaticScrollTimerRef.current = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+      programmaticScrollTimerRef.current = null;
+    }, 500);
+    return () => {
+      if (programmaticScrollTimerRef.current) {
+        window.clearTimeout(programmaticScrollTimerRef.current);
+        programmaticScrollTimerRef.current = null;
+      }
+    };
+  }, [activeSegmentId, autoFollow]);
+
+  // Detect user-initiated scroll to disable auto-follow.
+  const handleScroll = useCallback(() => {
+    if (programmaticScrollRef.current) return;
+    setAutoFollow(false);
+  }, []);
+
+  // Wheel / touch interactions on the container also disable auto-follow.
+  const handleWheel = useCallback(() => {
+    setAutoFollow(false);
+  }, []);
+
+  const handleTranscriptSegmentClick = useCallback(
+    (startTime: number) => {
+      // A user click always counts as manual focus: pause auto-follow.
+      setAutoFollow(false);
+      onSeekToTime(startTime);
+    },
+    [onSeekToTime],
+  );
+
   // Fetch transcript when selected video changes
   useEffect(() => {
     if (selectedVideoId && selectedVideoStatus === "completed") {
       setIsLoadingTranscript(true);
+      setAutoFollow(true);
       getVideoTranscript(selectedVideoId)
         .then((response) => {
           setTranscript(response.segments);
@@ -165,6 +238,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
   };
 
   const handleResultClick = (result: SegmentResult) => {
+    setAutoFollow(false);
     onSeekToTime(result.startTime, result.videoId);
   };
 
@@ -270,7 +344,13 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div
+        className={`flex-1 p-4 min-h-0 ${
+          !hasSearched && selectedVideo && transcript.length > 0
+            ? "overflow-hidden flex flex-col"
+            : "overflow-y-auto"
+        }`}
+      >
         {/* LLM Answer */}
         {activeTab === "llm" && llmAnswer && (
           <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -387,27 +467,91 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
           </div>
         ) : !hasSearched && selectedVideo && transcript.length > 0 ? (
           /* Transcript View (Default when video selected, no search) */
-          <div>
-            <div className="flex items-center justify-between mb-3">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-3 gap-2">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Transcript ({transcript.length} segments)
               </h3>
-            </div>
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-              {transcript.map((segment) => (
-                <div
-                  key={segment.segmentId}
-                  className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  onClick={() => onSeekToTime(segment.startTime)}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                    autoFollow
+                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-                      {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
-                    </span>
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      autoFollow
+                        ? "bg-indigo-500 animate-pulse"
+                        : "bg-gray-400"
+                    }`}
+                  />
+                  {autoFollow ? "Auto-follow" : "Paused"}
+                </span>
+                {!autoFollow && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAutoFollow(true);
+                    }}
+                    className="text-xs px-2 py-1 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
+                  >
+                    Resume auto-follow
+                  </button>
+                )}
+              </div>
+            </div>
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              onWheel={handleWheel}
+              onTouchStart={handleWheel}
+              className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700"
+            >
+              {transcript.map((segment) => {
+                const isPlaying = segment.segmentId === activeSegmentId;
+                return (
+                  <div
+                    key={segment.segmentId}
+                    data-segment-id={segment.segmentId}
+                    onClick={() => handleTranscriptSegmentClick(segment.startTime)}
+                    className={`p-3 cursor-pointer transition-colors ${
+                      isPlaying
+                        ? "bg-indigo-100 dark:bg-indigo-900/40 border-l-4 border-indigo-600 dark:border-indigo-400 pl-2"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-700 border-l-4 border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        className={`text-sm font-medium ${
+                          isPlaying
+                            ? "text-indigo-700 dark:text-indigo-300"
+                            : "text-indigo-600 dark:text-indigo-400"
+                        }`}
+                      >
+                        {formatTime(segment.startTime)} -{" "}
+                        {formatTime(segment.endTime)}
+                      </span>
+                      {isPlaying && (
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-semibold text-indigo-700 dark:text-indigo-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse" />
+                          Playing
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`text-sm ${
+                        isPlaying
+                          ? "text-gray-900 dark:text-gray-100"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {segment.text}
+                    </p>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">{segment.text}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : !hasSearched && selectedVideo && isLoadingTranscript ? (

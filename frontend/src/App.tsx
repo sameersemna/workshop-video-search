@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [processingCount, setProcessingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const prevProcessingCountRef = useRef<number>(0);
@@ -132,6 +133,7 @@ const App: React.FC = () => {
     setSelectedVideo(video);
     setError(null);
     setIsSidebarOpen(false); // Close sidebar on mobile when selecting a video
+    setCurrentTime(0);
   };
 
   const handleSeekToTime = (seconds: number, videoId?: string) => {
@@ -252,19 +254,27 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Video Player */}
-        <div className="flex-shrink-0 h-[30vh] sm:h-[35vh] lg:h-[40vh] min-h-[180px] lg:min-h-[250px] max-h-[500px] bg-gray-900 flex items-center justify-center">
-          <VideoPlayer ref={videoPlayerRef} video={selectedVideo} />
-        </div>
+        {/* Main Content: Player (left) + Search/Transcript panel (right) */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+          {/* Video Player */}
+          <div className="flex-shrink-0 lg:flex-1 bg-gray-900 flex items-center justify-center p-4 min-h-[30vh] lg:min-h-0">
+            <VideoPlayer
+              ref={videoPlayerRef}
+              video={selectedVideo}
+              onTimeUpdate={setCurrentTime}
+            />
+          </div>
 
-        {/* Search Panel */}
-        <div className="flex-1 overflow-hidden min-h-0">
-          <SearchPanel
-            selectedVideo={selectedVideo}
-            allVideoIds={completedVideoIds}
-            onSeekToTime={handleSeekToTime}
-            onError={(err) => setError(err?.message || null)}
-          />
+          {/* Search / Transcript Panel */}
+          <div className="flex-1 lg:flex-[1.1] xl:flex-[1.2] min-h-0 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 overflow-hidden">
+            <SearchPanel
+              selectedVideo={selectedVideo}
+              allVideoIds={completedVideoIds}
+              currentTime={currentTime}
+              onSeekToTime={handleSeekToTime}
+              onError={(err) => setError(err?.message || null)}
+            />
+          </div>
         </div>
       </main>
 

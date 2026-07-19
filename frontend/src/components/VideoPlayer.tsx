@@ -5,12 +5,15 @@ import YouTubePlayer, { type YouTubePlayerHandle } from "./YouTubePlayer";
 
 export interface VideoPlayerHandle {
   seekTo: (seconds: number) => void;
+  getCurrentTime: () => number;
 }
 
 interface VideoPlayerProps {
   video: VideoMetadata | null;
   onTimeUpdate?: (currentTime: number) => void;
 }
+
+const YT_POLL_INTERVAL_MS = 250;
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   ({ video, onTimeUpdate }, ref) => {
@@ -25,6 +28,15 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           videoRef.current.currentTime = seconds;
           videoRef.current.play().catch(() => {});
         }
+      },
+      getCurrentTime: () => {
+        if (video?.source === "youtube" && youtubeRef.current) {
+          return youtubeRef.current.getCurrentTime();
+        }
+        if (videoRef.current) {
+          return videoRef.current.currentTime;
+        }
+        return 0;
       },
     }));
 
@@ -41,6 +53,19 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         videoElement.removeEventListener("timeupdate", handleTimeUpdate);
       };
     }, [onTimeUpdate]);
+
+    // Poll YouTube player because the iframe API doesn't emit a timeupdate event.
+    useEffect(() => {
+      if (video?.source !== "youtube" || !onTimeUpdate) return;
+      const tick = () => {
+        const t = youtubeRef.current?.getCurrentTime();
+        if (typeof t === "number" && Number.isFinite(t)) {
+          onTimeUpdate(t);
+        }
+      };
+      const intervalId = window.setInterval(tick, YT_POLL_INTERVAL_MS);
+      return () => window.clearInterval(intervalId);
+    }, [video?.source, onTimeUpdate]);
 
     if (!video) {
       return (

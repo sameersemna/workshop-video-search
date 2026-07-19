@@ -6,10 +6,12 @@ interface YouTubePlayerProps {
 
 export interface YouTubePlayerHandle {
   seekTo: (seconds: number) => void;
+  getCurrentTime: () => number;
 }
 
 interface YouTubePlayerInstance {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  getCurrentTime: () => number;
   destroy: () => void;
 }
 
@@ -64,6 +66,12 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
         if (playerRef.current && playerRef.current.seekTo) {
           playerRef.current.seekTo(seconds, true);
         }
+      },
+      getCurrentTime: () => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+          return playerRef.current.getCurrentTime();
+        }
+        return 0;
       },
     }));
 
